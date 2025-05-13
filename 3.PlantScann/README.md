@@ -13,6 +13,7 @@
 ✅ Cálculo de tiempo desde la siembra  
 ✅ Proyección de fecha tentativa de cosecha  
 ✅ Compatible con cualquier dispositivo en red local  
+✅ App móvil con cámara y galería para tomar o seleccionar imágenes  
 
 ---
 
@@ -53,24 +54,27 @@ Para ejecutar el chatbot, asegúrate de tener Python 3 instalado en tu sistema. 
     cd Inteligencia-artificial/3.PlantScann
     ```
 
-### 2. Crear entorno virtual
-
-python -m venv venv
-venv\Scripts\activate  # En Windows
-
-# source venv/bin/activate  # En Linux/macOS
-
-### 3. Instalar dependencias
+### 2. Instalar dependencias
 
 pip install -r requirements.txt
 
-
-### 4. Crear archivo .env 
+### 3. Crear archivo .env 
 
 GEMINI_API_KEY=TU_CLAVE_API_DE_GOOGLE
 
 ▶️ Ejecutar servidor
 python app.py
+
+
+### 3. Ejecutar Backend (Flask) - Crear entorno virtual
+
+python -m venv venv
+venv\Scripts\activate  # En Windows
+
+### 4. Ejecutar Frontend Web
+- Ejecutar la app
+  npm start
+
 
 📦 Ejemplo de respuesta JSON
 {
@@ -81,6 +85,7 @@ python app.py
   "tiempo_estimado_desde_siembra": "5 semanas",
   "fecha_tentativa_cosecha": "En aproximadamente 3 semanas"
 }
+
 
 🛡 Seguridad y notas
 Este sistema está diseñado para uso local / pruebas educativas.

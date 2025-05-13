@@ -1,0 +1,16 @@
+# Archivos de Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Entorno virtual de Python
+venv/
+
+# Archivos de variables de entorno
+.env
+
+# Dependencias de Node.js
+node_modules/
+
+# Otros archivos o directorios específicos que quieras ignorar
+# (Puedes agregar más aquí según sea necesario)
