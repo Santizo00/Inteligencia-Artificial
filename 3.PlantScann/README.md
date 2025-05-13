@@ -43,16 +43,21 @@ PlantScann/
 
 ## ⚙️ Instalación y ejecución
 
-### 1. Clonar repositorio
+### 1.Instalación
 
--bash
-git clone https://github.com/Santizo00/Inteligencia-Artificial.git
-cd PlantScann/Backend
+Para ejecutar el chatbot, asegúrate de tener Python 3 instalado en tu sistema. Luego, sigue estos sencillos pasos:
+
+  **Clona el repositorio:**
+    ```bash
+    git clone https://github.com/Santizo00/Inteligencia-Artificial.git
+    cd Inteligencia-artificial/3.PlantScann
+    ```
 
 ### 2. Crear entorno virtual
 
 python -m venv venv
 venv\Scripts\activate  # En Windows
+
 # source venv/bin/activate  # En Linux/macOS
 
 ### 3. Instalar dependencias
