@@ -1,34 +1,43 @@
+import React, { useRef, useState } from 'react';
+import { useCameraPermissions } from 'expo-camera';
 import axios from 'axios';
-import { Camera } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
-import React, { useRef, useState, useEffect } from 'react';
-import { ActivityIndicator, Image as RNImage, ScrollView, StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from 'react-native';
+import * as ImageManipulator from 'expo-image-manipulator';
+import { ActivityIndicator, Image as RNImage, ScrollView, StyleSheet, Text, TouchableOpacity, View, useWindowDimensions, Button } from 'react-native';
 
 export default function HomeScreen() {
-  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
-  const [cameraReady, setCameraReady] = useState(false);
+  const [permission, requestPermission] = useCameraPermissions();
   const [cameraOpen, setCameraOpen] = useState(false);
   const [photo, setPhoto] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
-  const cameraRef = useRef<any>(null);
   const { width } = useWindowDimensions();
   const isMobile = width < 700;
 
-  useEffect(() => {
-    (async () => {
-      const cameraStatus = await Camera.requestCameraPermissionsAsync();
-      const galleryStatus = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      setHasPermission(cameraStatus.status === 'granted' || galleryStatus.status === 'granted');
-    })();
-  }, []);
+  const hasPermission = permission && permission.granted;
 
   const takePicture = async () => {
-    if (cameraRef.current && cameraReady) {
-      const photoData = await cameraRef.current.takePictureAsync({ base64: false });
-      setPhoto(photoData.uri);
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: false,
+      quality: 0.3, // reduce calidad
+      base64: false,
+    });
+    if (!result.canceled && result.assets.length > 0) {
+      let selected = result.assets[0];
+      // Redimensionar si es muy grande
+      let manipulated = selected;
+      if (selected.width > 1024) {
+        const manipResult = await ImageManipulator.manipulateAsync(
+          selected.uri,
+          [{ resize: { width: 1024 } }],
+          { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
+        );
+        manipulated = { ...selected, uri: manipResult.uri };
+      }
+      setPhoto(manipulated.uri);
+      sendPhoto(manipulated.uri);
       setCameraOpen(false);
-      sendPhoto(photoData.uri);
     }
   };
 
@@ -49,26 +58,21 @@ export default function HomeScreen() {
   const sendPhoto = async (uri: string) => {
     setLoading(true);
     setResult(null);
-
     try {
-      const blobResponse = await fetch(uri);
-      const blob = await blobResponse.blob();
-
-      const file = new File([blob], 'photo.jpg', { type: blob.type });
-
+      // Detecta el tipo mime
+      const fileType = uri.endsWith('.png') ? 'image/png' : 'image/jpeg';
       const formData = new FormData();
-      formData.append('image', file);
-
-      const axiosResponse = await axios.post('http://127.0.0.1:5000/upload', formData, {
+      formData.append('image', {
+        uri,
+        name: 'photo.jpg',
+        type: fileType,
+      } as any);
+      const axiosResponse = await axios.post('http://192.162.0.56:5000/upload', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });
-
-      console.log('Respuesta completa:', axiosResponse.data);
-
       setResult(axiosResponse.data.resultado);
-
     } catch (error) {
       console.error(error);
       setResult({ error: 'Error enviando la imagen o recibiendo respuesta.' });
@@ -77,40 +81,46 @@ export default function HomeScreen() {
     }
   };
 
+  if (!permission) {
+    return <View style={styles.permissionContainer}><Text>Solicitando permisos...</Text></View>;
+  }
+  if (!hasPermission) {
+    return (
+      <View style={styles.permissionContainer}>
+        <Text style={styles.permissionMessage}>Necesitamos tu permiso para mostrar la cámara</Text>
+        <Button onPress={requestPermission} title="Conceder permiso" />
+      </View>
+    );
+  }
+
   return (
     <ScrollView contentContainerStyle={styles.scrollContainer}>
       <Text style={styles.title}>Diagnóstico Agrícola Inteligente</Text>
       <View style={[styles.mainRow, isMobile && styles.mainRowMobile]}>
-        {/* Columna Izquierda: Imagen o placeholder */}
         <View style={[styles.leftColumn, isMobile && styles.leftColumnMobile]}>
           {photo ? (
-            <RNImage source={{ uri: photo }} style={styles.image} resizeMode="contain" />
-          ) : (
-            <View style={styles.placeholderImage}>
-              <Text style={{ fontSize: 60, color: '#388E3C' }}>🖼️</Text>
+            <>
+              <RNImage source={{ uri: photo }} style={styles.image} resizeMode="contain" />
+              <TouchableOpacity style={styles.button} onPress={() => { setPhoto(null); setResult(null); setCameraOpen(true); }}>
+                <Text style={styles.buttonText}>Tomar otra foto</Text>
+              </TouchableOpacity>
+            </>
+          ) : cameraOpen ? (
+            <View style={styles.camera}>
+              <View style={styles.cameraButtonContainer}>
+                <TouchableOpacity style={styles.button} onPress={takePicture}>
+                  <Text style={styles.buttonText}>Tomar foto</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.button} onPress={() => setCameraOpen(false)}>
+                  <Text style={styles.buttonText}>Cerrar cámara</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-          )}
-          {cameraOpen ? (
-            // @ts-expect-error Expo Camera type issue
-            React.createElement(Camera, {
-              ref: cameraRef,
-              style: styles.camera,
-              type: 'back',
-              onCameraReady: () => setCameraReady(true),
-              ratio: '4:3',
-              children: (
-                <View style={styles.cameraButtonContainer}>
-                  <TouchableOpacity style={styles.captureButton} onPress={takePicture} />
-                </View>
-              )
-            })
           ) : (
             <View style={[styles.buttonGroup, isMobile && styles.buttonGroupMobile]}>
-              {hasPermission && (
-                <TouchableOpacity style={styles.button} onPress={() => setCameraOpen(true)}>
-                  <Text style={styles.buttonText}>Tomar Foto</Text>
-                </TouchableOpacity>
-              )}
+              <TouchableOpacity style={styles.button} onPress={() => setCameraOpen(true)}>
+                <Text style={styles.buttonText}>Tomar Foto</Text>
+              </TouchableOpacity>
               <TouchableOpacity style={styles.button} onPress={pickImage}>
                 <Text style={[styles.buttonText, styles.buttonTextCenter]}>Seleccionar desde galería</Text>
               </TouchableOpacity>
@@ -118,7 +128,6 @@ export default function HomeScreen() {
           )}
           {loading && <ActivityIndicator size="large" style={{ margin: 20 }} color="#388E3C" />}
         </View>
-        {/* Columna Derecha: Tarjetas de información */}
         <View style={[styles.rightColumn, isMobile && styles.rightColumnMobile]}>
           <View style={[styles.cardsGrid, isMobile && styles.cardsGridMobile]}>
             <View style={styles.infoCard}>
@@ -160,7 +169,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   scrollContainer: {
     flexGrow: 1,
-    backgroundColor: '#E8F5E9', // verde muy claro
+    backgroundColor: '#E8F5E9',
     alignItems: 'center',
     justifyContent: 'flex-start',
     padding: 20,
@@ -218,7 +227,7 @@ const styles = StyleSheet.create({
   placeholderImage: {
     width: 300,
     height: 300,
-    backgroundColor: '#C8E6C9', // verde pastel
+    backgroundColor: '#C8E6C9',
     borderRadius: 40,
     justifyContent: 'center',
     alignItems: 'center',
@@ -230,7 +239,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'center',
-    alignItems: 'stretch', // Para que todas las cards tengan el mismo alto
+    alignItems: 'stretch',
     gap: 20,
   },
   cardsGridMobile: {
@@ -255,7 +264,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     flexGrow: 1,
-    flexBasis: '40%', // Para que ocupen el mismo espacio en la fila
+    flexBasis: '40%',
     minHeight: 80,
   },
   cardLabel: {
@@ -299,11 +308,16 @@ const styles = StyleSheet.create({
     borderColor: '#388E3C',
   },
   cameraButtonContainer: {
-    flex: 1,
-    backgroundColor: 'transparent',
-    justifyContent: 'flex-end',
+    flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 20,
+    backgroundColor: 'rgba(0,0,0,0.15)',
+    padding: 10,
+    gap: 10,
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
   },
   captureButton: {
     width: 70,
@@ -316,10 +330,12 @@ const styles = StyleSheet.create({
   },
   button: {
     backgroundColor: '#43A047',
-    padding: 15,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
     borderRadius: 10,
-    marginBottom: 20,
-    width: 220,
+    marginBottom: 0,
+    marginHorizontal: 5,
+    minWidth: 90,
     alignItems: 'center',
     shadowColor: '#388E3C',
     shadowOffset: { width: 0, height: 2 },
@@ -340,7 +356,7 @@ const styles = StyleSheet.create({
   resultContainer: {
     marginTop: 20,
     padding: 15,
-    backgroundColor: '#FFEBEE', // rojo claro para errores
+    backgroundColor: '#FFEBEE',
     borderRadius: 10,
     width: '100%',
   },
@@ -349,4 +365,28 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     textAlign: 'center',
   },
+  permissionContainer: {
+    flex: 1,
+    backgroundColor: '#E8F5E9',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  permissionMessage: {
+    textAlign: 'center',
+    paddingBottom: 10,
+    color: '#1B5E20',
+    fontSize: 16,
+  },
 });
+
+const appConfig = {
+  expo: {
+    ios: {
+      infoPlist: {
+        NSCameraUsageDescription: "Esta app necesita acceso a la cámara para tomar fotos de plantas.",
+        NSPhotoLibraryUsageDescription: "Esta app necesita acceso a la galería para seleccionar imágenes."
+      }
+    }
+  }
+};
