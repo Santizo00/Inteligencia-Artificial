@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { URL_BACKEND } from '../components/Config';
 
 export interface DiagnosticoAgricola {
   tipo_planta: string;
@@ -18,7 +19,7 @@ export async function uploadImage(uri: string): Promise<DiagnosticoAgricola | nu
       type: 'image/jpeg',
     } as any);
 
-    const res = await axios.post('http://192.168.1.41:5000/upload', formData, {
+    const res = await axios.post(`${URL_BACKEND}/upload`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
 

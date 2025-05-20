@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { URL_BACKEND } from '../components/Config';
 
 export interface PreguntarPlantaParams {
   pregunta: string;
@@ -12,7 +13,7 @@ export interface PreguntarPlantaResponse {
 
 export async function preguntarPlanta({ pregunta, contexto, historial = [] }: PreguntarPlantaParams): Promise<string | null> {
   try {
-    const res = await fetch('http://192.168.1.41:5000/preguntar', {
+    const res = await fetch(`${URL_BACKEND}/preguntar`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ pregunta, contexto, historial }),
