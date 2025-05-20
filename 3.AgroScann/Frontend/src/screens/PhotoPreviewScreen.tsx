@@ -13,6 +13,7 @@ import {
 import { RouteProp, useNavigation } from '@react-navigation/native';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { uploadImage, DiagnosticoAgricola } from '../utils/uploadImage';
+import { preguntarPlanta } from '../utils/preguntarPlanta';
 import ChatBox from '../components/ChatBox';
 
 type Props = {
@@ -45,6 +46,45 @@ export default function PhotoPreviewScreen({ route }: Props) {
       }, 100);
     }
   }, [showChat]);
+
+  const handleSendPregunta = async (pregunta: string) => {
+    if (!responseData) return;
+    // Construir historial para enviar al backend
+    const historial = chatMessages
+      .filter((msg) => msg.from === 'user' || msg.from === 'bot')
+      .map((msg) =>
+        msg.from === 'user'
+          ? { usuario: msg.text, respuesta: '' }
+          : { usuario: '', respuesta: msg.text }
+      );
+    // Unir pares usuario-respuesta
+    const historialPares = [];
+    for (let i = 0; i < historial.length; i += 2) {
+      if (historial[i] && historial[i + 1]) {
+        historialPares.push({
+          usuario: historial[i].usuario,
+          respuesta: historial[i + 1].respuesta,
+        });
+      }
+    }
+    setChatMessages((prev: any[]) => [
+      ...prev,
+      { id: Date.now().toString(), from: 'user', text: pregunta },
+    ]);
+    const respuesta = await preguntarPlanta({
+      pregunta,
+      contexto: responseData,
+      historial: historialPares,
+    });
+    setChatMessages((prev: any[]) => [
+      ...prev,
+      {
+        id: Date.now().toString() + '-bot',
+        from: 'bot',
+        text: respuesta || 'Error al obtener respuesta del asistente.',
+      },
+    ]);
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -84,7 +124,12 @@ export default function PhotoPreviewScreen({ route }: Props) {
             </TouchableOpacity>
             {showChat && (
               <View style={styles.chatWrapper}>
-                <ChatBox ref={chatBoxRef} messages={chatMessages} setMessages={setChatMessages} />
+                <ChatBox
+                  ref={chatBoxRef}
+                  messages={chatMessages}
+                  setMessages={setChatMessages}
+                  onSendPregunta={handleSendPregunta}
+                />
               </View>
             )}
           </View>

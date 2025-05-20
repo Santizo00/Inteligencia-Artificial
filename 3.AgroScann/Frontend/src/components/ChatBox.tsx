@@ -8,6 +8,8 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
+  Keyboard,
+  Dimensions,
 } from 'react-native';
 
 interface Message {
@@ -16,10 +18,18 @@ interface Message {
   text: string;
 }
 
-const ChatBox = forwardRef((props: any, ref) => {
-  const { messages: externalMessages, setMessages: setExternalMessages } = props;
+interface ChatBoxProps {
+  messages: Message[];
+  setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
+  onSendPregunta?: (pregunta: string) => void;
+}
+
+const ChatBox = forwardRef((props: ChatBoxProps, ref) => {
+  const { messages: externalMessages, setMessages: setExternalMessages, onSendPregunta } = props;
   const [input, setInput] = useState('');
   const flatListRef = useRef<FlatList>(null);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
 
   useImperativeHandle(ref, () => ({
     scrollToEnd: () => {
@@ -38,30 +48,63 @@ const ChatBox = forwardRef((props: any, ref) => {
     }
   }, [externalMessages]);
 
+  useEffect(() => {
+    const onShow = (e: any) => {
+      setKeyboardHeight(e.endCoordinates.height);
+      setIsKeyboardVisible(true);
+    };
+    const onHide = () => {
+      setKeyboardHeight(0);
+      setIsKeyboardVisible(false);
+    };
+    const showSub = Keyboard.addListener('keyboardDidShow', onShow);
+    const hideSub = Keyboard.addListener('keyboardDidHide', onHide);
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (isKeyboardVisible) {
+      // Scroll toda la pantalla hacia arriba cuando aparece el teclado
+      setTimeout(() => {
+        if (Platform.OS === 'android') {
+          // Para Android, usar scrollTo en el contenedor principal si existe
+          // Si el ChatBox está dentro de un ScrollView, deberías exponer una ref y llamarla aquí
+        } else if (flatListRef.current) {
+          flatListRef.current.scrollToOffset({ offset: 0, animated: true });
+        }
+      }, 300);
+    }
+  }, [isKeyboardVisible]);
+
   const handleSend = () => {
     const trimmed = input.trim();
     if (!trimmed) return;
 
-    const newMessage: Message = {
-      id: Date.now().toString(),
-      from: 'user',
-      text: trimmed,
-    };
-
-    setExternalMessages((prev: Message[]) => [...prev, newMessage]);
-
-    // Simular respuesta del sistema
-    setTimeout(() => {
+    if (onSendPregunta) {
+      onSendPregunta(trimmed);
+    } else {
       setExternalMessages((prev: Message[]) => [
         ...prev,
         {
-          id: Date.now().toString() + '-bot',
-          from: 'bot',
-          text: 'Gracias por tu mensaje. Pronto te responderemos.',
+          id: Date.now().toString(),
+          from: 'user',
+          text: trimmed,
         },
       ]);
-    }, 800);
-
+      setTimeout(() => {
+        setExternalMessages((prev: Message[]) => [
+          ...prev,
+          {
+            id: Date.now().toString() + '-bot',
+            from: 'bot',
+            text: 'Gracias por tu mensaje. Pronto te responderemos.',
+          },
+        ]);
+      }, 800);
+    }
     setInput('');
   };
 
@@ -69,7 +112,7 @@ const ChatBox = forwardRef((props: any, ref) => {
     <KeyboardAvoidingView
       style={styles.wrapper}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'android' ? 80 : 0}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 60}
     >
       <FlatList
         ref={flatListRef}
@@ -84,7 +127,7 @@ const ChatBox = forwardRef((props: any, ref) => {
         contentContainerStyle={{ paddingBottom: 10 }}
         showsVerticalScrollIndicator={false}
       />
-      <View style={styles.inputContainer}>
+      <View style={[styles.inputContainer, isKeyboardVisible && { marginBottom: keyboardHeight }]}>
         <TextInput
           style={styles.input}
           placeholder="Escribe un mensaje..."
