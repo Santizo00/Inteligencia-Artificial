@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>PlantScann</title>
+</head>
+<body>
+  <h2>Sube una imagen de tu planta 🌱</h2>
+  <form id="uploadForm">
+    <input type="file" name="image" accept="image/*" required />
+    <button type="submit">Analizar</button>
+  </form>
+
+  <h3>Resultado:</h3>
+  <pre id="resultado"></pre>
+
+  <div id="chatSection" style="display: none;">
+    <h3>❓ Haz una pregunta sobre esta planta:</h3>
+    <form id="questionForm">
+      <input type="text" id="questionInput" placeholder="¿Cada cuánto la riego?" required />
+      <button type="submit">Preguntar</button>
+    </form>
+    <div id="chatLog"></div>
+  </div>
+
+  <script>
+    const form = document.getElementById("uploadForm");
+    const resultado = document.getElementById("resultado");
+    const chatSection = document.getElementById("chatSection");
+    const questionForm = document.getElementById("questionForm");
+    const questionInput = document.getElementById("questionInput");
+    const chatLog = document.getElementById("chatLog");
+
+    let currentDiagnosis = null;
+
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const formData = new FormData(form);
+
+      const response = await fetch("http://127.0.0.1:5000/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+      resultado.textContent = JSON.stringify(data.resultado, null, 2);
+      currentDiagnosis = data.resultado;
+
+      chatSection.style.display = "block";
+      chatLog.innerHTML = "";
+    });
+
+    
+    let historial = [];
+
+    questionForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const question = questionInput.value;
+      if (!question || !currentDiagnosis) return;
+
+      // Mostrar pregunta en log
+      chatLog.innerHTML += `<p><strong>👤 Tú:</strong> ${question}</p>`;
+
+      const response = await fetch("http://127.0.0.1:5000/preguntar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          pregunta: question,
+          contexto: currentDiagnosis,
+          historial: historial 
+        }),
+      });
+
+      const data = await response.json();
+      const respuesta = data.respuesta;
+
+      // Mostrar respuesta
+      chatLog.innerHTML += `<p><strong>🌿 AgroScann:</strong> ${respuesta}</p>`;
+
+      // Guardar en historial
+      historial.push({ usuario: question, respuesta });
+
+      // Limpiar input
+      questionInput.value = "";
+
+    });
+  </script>
+</body>
+</html>

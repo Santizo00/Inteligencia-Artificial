@@ -4,6 +4,7 @@ import os
 import google.generativeai as genai
 from flask_cors import CORS
 from gemini_api import analizar_imagen_con_gemini
+from gemini_api import hacer_pregunta_con_gemini
 import json
 import re
 
@@ -28,10 +29,14 @@ def upload_image():
     if not image_bytes:
         return jsonify({"error": "El archivo recibido está vacío"}), 400
 
+    # Validar tipo MIME
+    mime_type = image_file.mimetype.lower()
+    if mime_type not in ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif']:
+        return jsonify({"error": f"Tipo de archivo no soportado: {mime_type}"}), 415
+
     resultado = analizar_imagen_con_gemini(image_bytes)
     print("Resultado generado por Gemini:", resultado)
 
-    # ✅ Limpiar el string si viene en formato Markdown tipo ```json ... ```
     if isinstance(resultado, str):
         resultado = re.sub(r"^```json|```$", "", resultado.strip(), flags=re.MULTILINE).strip()
         try:
@@ -40,7 +45,23 @@ def upload_image():
             return jsonify({"error": "Respuesta de Gemini inválida"}), 500
 
     return jsonify({"resultado": resultado})
+
     
+@app.route('/preguntar', methods=['POST'])
+def preguntar_sobre_planta():
+    data = request.get_json()
+
+    if not data or "pregunta" not in data or "contexto" not in data:
+        return jsonify({"error": "Faltan campos obligatorios"}), 400
+
+    pregunta = data["pregunta"]
+    contexto = data["contexto"]
+    historial = data.get("historial", []) 
+
+    respuesta = hacer_pregunta_con_gemini(pregunta, contexto, historial)
+
+    return jsonify({"respuesta": respuesta})
+
 
 
 if __name__ == '__main__':
