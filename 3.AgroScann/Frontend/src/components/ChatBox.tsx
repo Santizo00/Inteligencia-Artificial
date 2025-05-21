@@ -6,10 +6,8 @@ import {
   Text,
   FlatList,
   StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
   Keyboard,
-  Dimensions,
+  Platform,
 } from 'react-native';
 
 interface Message {
@@ -109,11 +107,7 @@ const ChatBox = forwardRef((props: ChatBoxProps, ref) => {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.wrapper}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 60}
-    >
+    <View style={styles.wrapper}>
       <FlatList
         ref={flatListRef}
         data={externalMessages}
@@ -127,7 +121,7 @@ const ChatBox = forwardRef((props: ChatBoxProps, ref) => {
         contentContainerStyle={{ paddingBottom: 10 }}
         showsVerticalScrollIndicator={false}
       />
-      <View style={[styles.inputContainer, isKeyboardVisible && { marginBottom: keyboardHeight }]}>
+      <View style={styles.inputContainer}>
         <TextInput
           style={styles.input}
           placeholder="Escribe un mensaje..."
@@ -140,7 +134,7 @@ const ChatBox = forwardRef((props: ChatBoxProps, ref) => {
           <Text style={styles.sendText}>➤</Text>
         </TouchableOpacity>
       </View>
-    </KeyboardAvoidingView>
+    </View>
   );
 });
 
@@ -154,13 +148,14 @@ const styles = StyleSheet.create({
     maxWidth: '90%',
     backgroundColor: '#fff',
     borderRadius: 16,
-    marginTop: 0,
+    marginTop: -120, // Mueve el chat box aún más arriba
     overflow: 'hidden',
     elevation: 4,
     shadowColor: '#000',
     shadowOpacity: 0.12,
     shadowOffset: { width: 0, height: 4 },
     shadowRadius: 12,
+    flexGrow: 1,
   },
   messages: {
     flex: 1,
@@ -187,7 +182,7 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     padding: 10,
-    borderTopWidth: 1,
+    borderTopWidth: 1, // Cambia de 210 a 1 para quitar la franja gris
     borderColor: '#eee',
     backgroundColor: '#f9f9f9',
     alignItems: 'center',

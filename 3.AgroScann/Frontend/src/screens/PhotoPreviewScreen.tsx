@@ -88,6 +88,25 @@ export default function PhotoPreviewScreen({ route }: Props) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      {/* Overlay de chat y botón, fuera del container, en primer plano */}
+      {showChat && (
+        <View style={styles.overlayFullScreen} pointerEvents="box-none">
+          <TouchableOpacity
+            style={styles.overlayChatButton}
+            onPress={() => setShowChat(false)}
+          >
+            <Text style={styles.chatText}>🔽 Cerrar chat</Text>
+          </TouchableOpacity>
+          <View style={styles.overlayChatWrapper}>
+            <ChatBox
+              ref={chatBoxRef}
+              messages={chatMessages}
+              setMessages={setChatMessages}
+              onSendPregunta={handleSendPregunta}
+            />
+          </View>
+        </View>
+      )}
       <View style={styles.scrollContainer}>
         <View style={styles.container}>
           {/* Logo */}
@@ -112,31 +131,9 @@ export default function PhotoPreviewScreen({ route }: Props) {
             )}
           </View>
 
-          {/* Botón y Chat debajo de la imagen */}
-          <View style={styles.footer}>
-            <TouchableOpacity
-              style={styles.chatButton}
-              onPress={() => setShowChat(!showChat)}
-            >
-              <Text style={styles.chatText}>
-                {showChat ? '🔽 Cerrar chat' : '💬 Chat'}
-              </Text>
-            </TouchableOpacity>
-            {showChat && (
-              <View style={styles.chatWrapper}>
-                <ChatBox
-                  ref={chatBoxRef}
-                  messages={chatMessages}
-                  setMessages={setChatMessages}
-                  onSendPregunta={handleSendPregunta}
-                />
-              </View>
-            )}
-          </View>
-
           {/* Descripción y resultado */}
           <View style={styles.textContainer}>
-            <Text style={styles.title}>Imagen Analisada</Text>
+            <Text style={styles.title}>Imagen Analizada</Text>
 
             {loading ? (
               <ActivityIndicator size="large" color="#4CAF50" style={{ marginTop: 20 }} />
@@ -151,6 +148,18 @@ export default function PhotoPreviewScreen({ route }: Props) {
               </View>
             ) : (
               <Text style={{ marginTop: 20, color: 'red' }}>No se pudo analizar la imagen.</Text>
+            )}
+
+            {/* Botón de chat en la parte inferior de la descripción */}
+            {!showChat && (
+              <View style={{ alignItems: 'center', marginTop: 24 }}>
+                <TouchableOpacity
+                  style={styles.chatButton}
+                  onPress={() => setShowChat(true)}
+                >
+                  <Text style={styles.chatText}>💬 Chat</Text>
+                </TouchableOpacity>
+              </View>
             )}
           </View>
         </View>
@@ -220,32 +229,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#555',
   },
-  footer: {
-    marginTop: 16,
-    alignItems: 'center',
-    paddingHorizontal: 0,
-    paddingBottom: 0,
-    zIndex: 1000,
-    position: 'relative',
-    left: 0,
-    right: 0,
-    top: 0,
-    backgroundColor: 'transparent',
-  },
-  chatButton: {
-    backgroundColor: '#4CAF50',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 25,
-    elevation: 3,
-    borderColor: '#ddd',
-    borderWidth: 1,
-  },
-  chatText: {
-    fontSize: 16,
-    color: '#fff',
-    fontWeight: 'bold',
-  },
   resultCard: {
     marginTop: 20,
     backgroundColor: '#fff',
@@ -265,5 +248,49 @@ const styles = StyleSheet.create({
   scrollContainer: {
     paddingBottom: 30,
     flexGrow: 1,
+  },
+  overlayFullScreen: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.85)',
+    padding: 10,
+  },
+  overlayChatWrapper: {
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  overlayChatButton: {
+    position: 'absolute',
+    top: 20,
+    right: 20,
+    backgroundColor: '#4CAF50',
+    paddingVertical: 8,
+    paddingHorizontal: 18,
+    borderRadius: 25,
+    elevation: 3,
+    borderColor: '#ddd',
+    borderWidth: 1,
+    zIndex: 30,
+  },
+  chatButton: {
+    backgroundColor: '#4CAF50',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 25,
+    elevation: 3,
+    borderColor: '#ddd',
+    borderWidth: 1,
+  },
+  chatText: {
+    fontSize: 16,
+    color: '#fff',
+    fontWeight: 'bold',
   },
 });
