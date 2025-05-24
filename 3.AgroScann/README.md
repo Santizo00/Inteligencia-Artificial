@@ -32,6 +32,7 @@
 
 ## 📁 Estructura del proyecto
 
+```text
 AgroScann/
 ├── Backend/
 │ ├── app.py              # API principal Flask
@@ -48,7 +49,7 @@ AgroScann/
 │ ├── App.tsx
 │ ├── app.json
 │ └── package.json
-
+```
 
 ---
 
